@@ -1,0 +1,9 @@
+.container{
+    width: 98%;
+    background-color: #222E35;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center; 
+    position: fixed;
+}

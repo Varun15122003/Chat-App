@@ -1,0 +1,159 @@
+.settingContainer {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    width: 440px;
+    top: 20px;
+    bottom: 20px;
+    background-color: #111B21;
+    margin-left: 70px;
+    border-left: .5px solid #3e4f59;
+    border-right: .5px solid #3e4f59;
+    position: fixed;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+.settingContainer::-webkit-scrollbar {
+    display: none;
+}
+
+.settingName{
+    margin: 15px;
+    color: white;
+    align-self: flex-start;
+}
+
+.settingName h2{
+    margin: 0px;
+    padding: 0px;
+    
+}
+
+.settingSearchBar{
+    margin: 15px;
+
+}
+.settingSearchBar input {
+    width: 95%;
+    padding: 10px;
+    border-radius: 10px;
+    border: none;
+    background-color: #202C33;
+    color: white;
+    font-size: 16px;
+    outline: none;
+}
+
+.profile{
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 9px 15px;
+    gap: 10px;
+    
+}
+.profile:hover{
+    background-color: #202C33;
+}
+
+.userImage{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    cursor: pointer;
+}
+.userImage img{
+    height: 90px;
+    width: 90px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.userName{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.userDetails{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+h3{
+    color: white;
+    margin: 0px;
+    padding: 0px;
+    font-size: large;
+}
+
+h4{
+    color: white;
+    margin: 0px;
+    padding: 0px;
+}
+
+.logoutName h4{
+    color: red;
+}
+
+p{
+    font-size: small;
+    margin: 0px;
+    padding: 0px;
+    font-size: small;
+    color: #B0B3B8;
+}
+
+i{
+    font-size: 20px;
+    color: white;
+}
+
+.logoutIcon i{
+    color: red;
+    font: bold;
+}
+
+.acountSetting, .privacySeting, .notificationSetting, .logoutSetting, .chatSetting, .keyboardSetting, .helpSetting{
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    width: 89%;
+    padding: 10px 25px;
+    gap: 20px;
+    cursor: pointer;
+}
+
+.acountSetting:hover, .privacySeting:hover, .notificationSetting:hover, .logoutSetting:hover, .chatSetting:hover, .keyboardSetting:hover, .helpSetting:hover{
+    background-color: #202C33;
+}
+
+.acountIcon, .privacyIcon, .notificationIcon, .logoutIcon, .chatIcon, .keyboardIcon, .helpIcon{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.acountName, .privacyName, .notificationName, .logoutName, .chatName, .keyboardName, .helpName{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+@media (max-width: 1100px) {
+    .settingContainer {
+        width: 300px;
+    }
+}
