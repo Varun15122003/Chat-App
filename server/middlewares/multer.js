@@ -12,11 +12,12 @@ const storage = multer.diskStorage({
     },
 });
 
-const upload = multer({ storage: storage });
+// 🔹 UPDATED: Added limits for file size
+const upload = multer({ 
+    storage: storage,
+    limits: { 
+        fileSize: 50 * 1024 * 1024 // 50MB in bytes
+    } 
+});
 
 module.exports = upload;
-
-
-//  cloudinary
-
-

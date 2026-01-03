@@ -5,9 +5,10 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from "jwt-decode";
-
+import { useAuthContext } from '../context/AuthContext';
 
 const OtpForm = () => {
+    const { setUser, setIsLoggedIn } = useAuthContext();
     const navigate = useNavigate();
     const [otp, setOtp] = useState('');
     const [email, setEmail] = useState('');
@@ -54,9 +55,17 @@ const OtpForm = () => {
             }
 
             if (response.status === 200) {
-                toast.success(response.data.msg);
-                localStorage.setItem('token', response.data.token);
+                const token = response.data.token;
+                localStorage.setItem('token', token);
                 localStorage.removeItem('authUser');
+                const userResponse = await axios.get('http://localhost:3000/api/auth/getUserDetails', {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                toast.success(response.data.msg);
+                setIsLoggedIn(true);
+                setUser(userResponse.data);
                 setTimeout(() => {
                     navigate('/', { replace: true });
                 }, 2000);
@@ -73,7 +82,9 @@ const OtpForm = () => {
                 <div className={styles.form}>
                     <h1>Enter OTP</h1>
                     <p>We sent a verification code to your email</p>
-                    <div className={styles.name}>
+                    
+                    {/* Changed styles.name to styles.formName to match CSS */}
+                    <div className={styles.formName}>
                         <input
                             type="text"
                             name="otp"
@@ -83,7 +94,9 @@ const OtpForm = () => {
                             required
                         />
                     </div>
-                    <div className={styles.name}>
+                    
+                    {/* Changed styles.name to styles.formName to match CSS */}
+                    <div className={styles.formName}>
                         <button type="submit">Verify OTP</button>
                     </div>
                 </div>

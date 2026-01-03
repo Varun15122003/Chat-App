@@ -1,3 +1,4 @@
+/* eslint-disable */
 import styles from './Chatcard.module.css'
 import { useRenderContext } from '../../context/RenderContext'
 import { useAuthContext } from '../../context/AuthContext'

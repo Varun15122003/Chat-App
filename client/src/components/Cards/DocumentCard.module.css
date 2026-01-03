@@ -1,0 +1,38 @@
+.documentContainer{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #1b1b1b;
+    border: 2px dashed #2d9dda;
+    width: 150px;
+    padding: 20px;
+    border-radius: 10px;
+    height: auto;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.documentSection, .imageSection, .videoSection, .songSection {
+    display: flex;
+    /* align-items: center; */
+    width: 95%;
+    height: 30px;
+    /* justify-content: space-around; */
+    cursor: pointer;
+}
+
+.documentSection:hover, .imageSection:hover, .videoSection:hover, .songSection:hover {
+    background: #424344;
+
+    border-radius: 5px;
+}
+
+.document{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 10px;
+    color: white;
+}

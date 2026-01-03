@@ -28,6 +28,7 @@ const LoginForm = () => {
            
             if (response.status === 200) {
                 const token = response.data.token
+                console.log("Token:", token);
                 localStorage.setItem('token', token)
 
                 const userResponse = await axios.get('http://localhost:3000/api/auth/getUserDetails', {

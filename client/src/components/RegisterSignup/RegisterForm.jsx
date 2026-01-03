@@ -1,5 +1,5 @@
 import styles from './RegisterForm.module.css'
-import { Link , useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import axios from 'axios'
 import { ToastContainer, toast } from 'react-toastify';
@@ -35,9 +35,9 @@ const RegisterForm = () => {
                 setTimeout(() => {
                     navigate('/verifyEmailOtp', { replace: true })
                 }, 2000)
-            }else if (response.status === 200) {
+            } else if (response.status === 200) {
                 toast.error(response.data.msg)
-            }else{
+            } else {
                 toast.error("Something went wrong")
             }
 

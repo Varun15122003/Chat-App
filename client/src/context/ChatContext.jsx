@@ -1,137 +1,240 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { useAuthContext } from './AuthContext';
-import axios from 'axios';
-import PropTypes from 'prop-types';
-import io from 'socket.io-client'
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { useAuthContext } from "./AuthContext";
+import axios from "axios";
+import PropTypes from "prop-types";
+import io from "socket.io-client";
+
 const ChatContext = createContext();
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const useChatContext = () => useContext(ChatContext);
 
+// 🟢 SOCKET PORT (7000)
+const SOCKET_URL = "http://localhost:7000";
+// 🟢 API PORT (3000)
+const API_URL = "http://localhost:3000/api/chat";
+
 const ChatProvider = ({ children }) => {
-    const [chatPerson, setChatPerson] = useState(null);
-    const [text, setText] = useState('');
-    const [messages, setMessages] = useState([]);
-    const [activeUsers, setActiveUsers] = useState([]);
-    const [incomingMessage, setIncomingMessage] = useState(null);
-    const { user } = useAuthContext();
+  const [chatPerson, setChatPerson] = useState(null);
+  const [text, setText] = useState("");
+  const [activeUsers, setActiveUsers] = useState([]);
 
-    const socket = useRef();
+  // File Upload States
+  const [fileUrl, setFileUrl] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isFileActive, setIsFileActive] = useState(false);
+  const [isDocumentPreviewActive, setIsDocumentPreviewActive] = useState(false);
 
-    useEffect(() => {
-        socket.current = io('ws://localhost:7000')
-    }, [])
+  const { user } = useAuthContext();
+  const socket = useRef(null);
+
+  // 🔹 1. Socket Connection (Optimized for React Strict Mode)
+  useEffect(() => {
+    // Agar socket pehle se connected hai to naya mat banao
+    if (socket.current) return;
+
+    socket.current = io(SOCKET_URL, {
+      transports: ['websocket'],      // Polling error fix
+      reconnection: true,             // Auto reconnect enable
+      reconnectionAttempts: 5,        // Max 5 attempts
+      reconnectionDelay: 1000,        // 1 sec delay
+    });
+
+    return () => {
+      // Cleanup: Disconnect on unmount
+      if (socket.current) {
+        socket.current.disconnect();
+        socket.current = null;
+      }
+    }
+  }, []);
+
+  // 🔹 2. Add User & Listen for Active Users
+  useEffect(() => {
+    if (!user || !socket.current) return;
+
+    // Backend expects "addUsers"
+    socket.current.emit("addUsers", user);
+
+    // Backend emits "getUsers"
+    socket.current.on("getUsers", (users) => {
+      setActiveUsers(users);
+    });
+  }, [user]);
 
 
-    console.log(socket)
+  // 🔹 3. Fetch Messages (API Port 3000)
+  const fetchMessages = async (page = 1) => {
+    if (!user || !chatPerson) return [];
 
-    useEffect(() => {
-        socket.current.emit("addUsers", user);
-        socket.current.on('getUsers', users => {
-            console.log(users)
-            setActiveUsers(users);
-        })
-
-    }, [user])
-    useEffect(() => {
-        console.log(socket)
-        socket?.current.on('getMessage', async (data) => {
-            console.log(data);
-            setIncomingMessage(data.message);
-        });
-    }, [socket])
-
-    const fetchMessages = async () => {
-        if (!user || !chatPerson) return;
-
-        try {
-            const response = await axios.get(`http://localhost:3000/api/chat/${user?._id}/${chatPerson?._id}`, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem('token')}`,
-                },
-            });
-            console.log(response)
-            if (response.status === 200) {
-                setMessages(response.data.message);
-            } else {
-                console.log("Error while fetching messages");
-            }
-        } catch (error) {
-            console.error("Error fetching messages:", error);
+    try {
+      const res = await axios.get(
+        `${API_URL}/${user._id}/${chatPerson._id}?page=${page}&limit=20`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
         }
+      );
+
+      if (res.status === 200) {
+        return res.data.message;
+      }
+      return [];
+    } catch (err) {
+      console.error("Fetch message error:", err);
+      return [];
+    }
+  };
+
+  // 🔹 Upload Media Helper (API Port 3000)
+  const uploadMedia = async (file) => {
+    if (!file) return null;
+
+    const formData = new FormData();
+    formData.append("media", file);
+
+    try {
+      const res = await axios.post(
+        `${API_URL}/uploadMedia`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      return res.data;
+    } catch (error) {
+      console.error("Error uploading media:", error);
+      return null;
+    }
+  };
+
+  // 🔹 Handle File Upload Logic (Called by UI)
+  const handleFileUpload = async () => {
+    const data = await uploadMedia(selectedFile);
+    if (data) {
+      // Media upload hone ke baad message bhejo
+      return await sendMediaMessage(data.mediaUrl, data.mediaType);
+    }
+    return null;
+  }
+
+  const handleMediaChange = async (e) => {
+    const Test = e.target.files[0];
+    if (!Test) return;
+    setSelectedFile(Test);
+    setFileUrl(URL.createObjectURL(Test));
+    setIsFileActive(false);
+    setIsDocumentPreviewActive(true);
+  };
+
+  // 🔹 Send TEXT Message (API Port 3000)
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!text.trim()) return null;
+
+    const messageObject = {
+      messageType: "text",
+      text: text,
+      sender: user._id,
+      time: new Date(),
     };
 
-    console.log(messages)
-
-    useEffect(() => {
-        console.log(incomingMessage);
-        if (
-            incomingMessage &&
-            chatPerson
-        ) {
-            setMessages(prev => [...prev, incomingMessage]);
-        }
-    }, [incomingMessage, chatPerson]);
-
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
-        const data = {
-            userOneId: user?._id,
-            userTwoId: chatPerson?._id,
-            message: {
-                text: text,
-                date: new Date().toISOString(),
-                sender: user?._id,
-            },
-        };
-
-        try {
-            const response = await axios.post('http://localhost:3000/api/chat/sendMessage', data, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem('token')}`,
-                },
-            });
-
-            if (response.status === 200) {
-                console.log("Message sent successfully");
-                socket.current.emit('sendMessage', data)
-                await fetchMessages()
-                setText('');
-            } else {
-                console.log("Error while sending message");
-            }
-        } catch (error) {
-            console.error("Error sending message:", error);
-        }
+    const data = {
+      userOneId: user._id,
+      userTwoId: chatPerson._id,
+      message: messageObject,
     };
 
-    return (
-        <ChatContext.Provider
-            value={{
-                chatPerson,
-                setChatPerson,
-                text,
-                setText,
-                messages,
-                setMessages,
-                fetchMessages,
-                handleSubmit,
-                socket,
-                activeUsers,
-                setActiveUsers,
-                incomingMessage,
-                setIncomingMessage,
-            }}
-        >
-            {children}
-        </ChatContext.Provider>
-    );
+    try {
+      const res = await axios.post(
+        `${API_URL}/sendMessage`,
+        data,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      if (res.status === 200 || res.status === 201) {
+        setText("");
+        return messageObject; // Return for UI update
+      }
+    } catch (err) {
+      console.error("Send message error:", err);
+      return null;
+    }
+  };
+
+  // 🔹 Send MEDIA Message (API Port 3000)
+  const sendMediaMessage = async (mediaUrl, type) => {
+    const messageObject = {
+      messageType: type,
+      mediaUrl,
+      sender: user._id,
+      time: new Date(),
+    };
+
+    const data = {
+      userOneId: user._id,
+      userTwoId: chatPerson._id,
+      message: messageObject,
+    };
+
+    try {
+      const res = await axios.post(
+        `${API_URL}/sendMessage`,
+        data,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      if (res.status === 200) {
+        return messageObject; // Return for UI update
+      }
+    } catch (err) {
+      console.error("Media send error:", err);
+      return null;
+    }
+  };
+
+  return (
+    <ChatContext.Provider
+      value={{
+        chatPerson,
+        setChatPerson,
+        text,
+        setText,
+        fetchMessages,
+        handleSubmit,
+        sendMediaMessage,
+        socket,
+        activeUsers,
+        handleMediaChange,
+        handleFileUpload,
+        fileUrl,
+        setFileUrl,
+        isDocumentPreviewActive,
+        setIsDocumentPreviewActive,
+        isFileActive,
+        setIsFileActive,
+        selectedFile,      // Exported for ShowDocumentCard
+        setSelectedFile,   // Exported for ShowDocumentCard
+      }}
+    >
+      {children}
+    </ChatContext.Provider>
+  );
 };
 
 ChatProvider.propTypes = {
-    children: PropTypes.node.isRequired,
+  children: PropTypes.node.isRequired,
 };
 
 export default ChatProvider;

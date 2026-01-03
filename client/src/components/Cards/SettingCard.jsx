@@ -3,12 +3,14 @@ import { useAuthContext } from '../../context/AuthContext'
 import LogOutModel from '../LogoutModel'
 import { useRenderContext } from '../../context/RenderContext'
 const SettingCard = () => {
-    const { user, setShowModel } = useAuthContext()
-    const {setActiveTab } = useRenderContext()
+    const { user, setShowModel, } = useAuthContext()
+    const { setActiveTab } = useRenderContext()
 
     const handleLogOut = () => {
         setShowModel(true);
+
     }
+
     return (
         <>
             <LogOutModel />
@@ -19,9 +21,9 @@ const SettingCard = () => {
                 <div className={`${styles.settingSearchBar}`}>
                     <input type="text" placeholder="Search Settings" />
                 </div>
-                <div className={`${styles.profile}`} onClick={()=> setActiveTab('profile')}>
+                <div className={`${styles.profile}`} onClick={() => setActiveTab('profile')}>
                     <div className={`${styles.userImage}`}>
-                        <img src={user.profileImage} alt="/" />
+                        <img src={user?.profileImage} alt="/sdjcgyjh" />
                     </div>
                     <div className={`${styles.userName}`}>
                         <div className={`${styles.userDetails}`}>

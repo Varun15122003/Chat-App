@@ -18,7 +18,7 @@ const AuthProvider = ({ children }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const [users, setUsers] = useState([]);
-    const {activeTab}= useRenderContext()
+    const { activeTab } = useRenderContext()
 
 
     const fetchUsers = async () => {
@@ -38,9 +38,10 @@ const AuthProvider = ({ children }) => {
     const handleFileChange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        setSelectedImage(URL.createObjectURL(file));
+        setSelectedImage(file);
         const formData = new FormData();
-        formData.append('selectedImage', file);
+        // console.log("Selected file for profile image:", file)
+        formData.append('file', file);
 
         const fetchUser = async () => {
             try {

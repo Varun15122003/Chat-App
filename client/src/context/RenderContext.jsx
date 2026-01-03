@@ -1,48 +1,22 @@
 import { createContext, useContext, useState } from 'react';
 import PropTypes from 'prop-types';
-import ChatCard from '../components/Cards/ChatCard';
-import StatusCard from '../components/Cards/StatusCard';
-import ProfileCard from '../components/Cards/ProfileCard';
-import SettingCard from '../components/Cards/SettingCard';
-import NewChat from '../components/Cards/NewChat';
 
 const RenderContext = createContext();
 
-// eslint-disable-next-line react-refresh/only-export-components
-export const useRenderContext = () => useContext(RenderContext);
+export const useRenderContext = () => {
+    const context = useContext(RenderContext);
+    if (!context) {
+        throw new Error("useRenderContext must be used within a RenderProvider");
+    }
+    return context;
+};
 
 const RenderProvider = ({ children }) => {
+    // Only manage the STATE here, not the components
     const [activeTab, setActiveTab] = useState('chat');
 
-    const renderComponent = () => {
-        switch (activeTab) {
-            case 'chat':
-                return <ChatCard />;
-            case 'status':
-                return <StatusCard />;
-            case 'channels':
-                return <ChatCard />;
-            case 'communitie':
-                return <StatusCard />;
-            case 'profile':
-                return <ProfileCard />;
-            case 'setting':
-                return <SettingCard />;
-            case 'newChat':
-                return <NewChat />;
-            default:
-                return <ChatCard />;
-        }
-    };
-
     return (
-        <RenderContext.Provider
-            value={{
-                activeTab,
-                setActiveTab,
-                renderComponent,
-            }}
-        >
+        <RenderContext.Provider value={{ activeTab, setActiveTab }}>
             {children}
         </RenderContext.Provider>
     );
@@ -51,7 +25,5 @@ const RenderProvider = ({ children }) => {
 RenderProvider.propTypes = {
     children: PropTypes.node.isRequired,
 };
-
-
 
 export default RenderProvider;

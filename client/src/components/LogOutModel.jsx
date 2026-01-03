@@ -7,6 +7,7 @@ const LogOutModel = () => {
     const handleYes = () => {
         logout();
         setShowModel(false);
+        localStorage.removeItem('token');
     }
 
     const handleNo = () => {

@@ -1,11 +1,12 @@
 const User = require('../models/User');
-const OtpVerification = require('../models/otpVerification');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const jwt_SECRET = "varunchatapp";
+
 const cloudinary = require('../middlewares/cloudinary');
 const transporter = require('../config/nodemailer');
 const Message = require('../models/Message');
+const OtpVerification = require('../models/OtpVerification');
 
 
 const Register = async (req, res) => {
@@ -24,7 +25,7 @@ const Register = async (req, res) => {
         }
         const user = await User.findOne({ email: email });
         if (user) {
-            return res.status(200).json({ status: false, msg: 'User already exists' });
+            return res.status(200).json({ status: false, msg: 'User hgy already exists' });
         }
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
@@ -138,7 +139,9 @@ const getUserDetails = async (req, res) => {
 // uploade profile img
 
 const uploadProfileImg = async (req, res) => {
+    console.log("req.file:", req.file);
     const authHeader = req.headers.authorization;
+    console.log("authHeader:", authHeader);
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ message: 'Authorization header missing or malformed' });
@@ -151,6 +154,7 @@ const uploadProfileImg = async (req, res) => {
 
         const userId = decoded.id;
         const user = await User.findById(userId);
+        console.log("user:", user);
 
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
@@ -163,6 +167,8 @@ const uploadProfileImg = async (req, res) => {
         const file = req.file.path;
         const cloudinaryResponse = await cloudinary.uploader.upload(file, {
             folder: 'chatapp_Images_On_Cloudinary',
+            resource_type: 'auto'
+
         }
         );
         const imageUrl = cloudinaryResponse.secure_url;
@@ -178,6 +184,90 @@ const uploadProfileImg = async (req, res) => {
     } catch (err) {
         console.error('Error uploading profile image:', err.message);
         res.status(500).json({ message: 'Failed to upload image', error: err.message });
+    }
+};
+
+
+const uploadMedia = async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({
+            message: 'Authorization header missing or malformed'
+        })
+    }
+    try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, jwt_SECRET);
+        const userId = decoded.id;
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (!req.file) {
+            return res.status(400).json({
+                message: 'No file uploaded. Please upload an image or video.'
+            });
+        }
+
+        // 🔹 1. DETERMINE RESOURCE TYPE (Fix for PDF/Docx)
+        let resourceType = 'auto';
+
+        // Check for PDF or Document extensions -> Force 'raw'
+        if (req.file.mimetype === 'application/pdf' ||
+            req.file.originalname.match(/\.(doc|docx|txt|ppt|pptx|xls|xlsx)$/i)) {
+            resourceType = 'raw';
+        }
+
+        // 🔹 2. PREPARE UPLOAD OPTIONS
+        const uploadOptions = {
+            folder: 'chatapp_media',
+            resource_type: resourceType,
+        };
+
+        // 🔹 3. ADD COMPRESSION (Only for Images/Videos)
+        // We do NOT add this for 'raw' files because it breaks them
+        if (resourceType === 'auto') {
+            uploadOptions.quality = 'auto';       // Auto-adjust quality to reduce size
+            uploadOptions.fetch_format = 'auto';  // Convert to efficient format (like WebP)
+        }
+
+        const filePath = req.file.path;
+
+        // 🔹 4. UPLOAD TO CLOUDINARY
+        const cloudinaryResponse = await cloudinary.uploader.upload(filePath, uploadOptions);
+
+        const mediaUrl = cloudinaryResponse.secure_url;
+
+        // 🔹 5. MAP EXTENSION TO MEDIA TYPE
+        let mediaType = 'document'; // Default fallback
+
+        // Get extension from Cloudinary or fallback to original filename
+        const ext = (cloudinaryResponse.format || req.file.originalname.split('.').pop()).toLowerCase();
+
+        if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(ext)) {
+            mediaType = 'image';
+        } else if (['mp4', 'mkv', 'avi', 'mov', 'wmv', 'webm'].includes(ext)) {
+            mediaType = 'video';
+        } else if (['mp3', 'wav', 'aac', 'flac', 'ogg', 'm4a'].includes(ext)) {
+            mediaType = 'audio';
+        } else if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'ppt', 'pptx'].includes(ext)) {
+            mediaType = 'document';
+        }
+
+        return res.status(200).json({
+            message: 'Media uploaded successfully',
+            mediaUrl: mediaUrl,
+            mediaType: mediaType,
+        });
+
+    } catch (err) {
+        // 🔹 Handle File Size Error (from Multer)
+        if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({ message: 'File is too large. Max limit is 50MB.' });
+        }
+        console.error('Error uploading media:', err.message);
+        res.status(500).json({ message: 'Failed to upload media', error: err.message });
     }
 };
 
@@ -313,7 +403,7 @@ const sendMessage = async (req, res) => {
                 userTwo: userTwoId,
                 message: [message],
             });
-            
+
             await newMessage.save();
             await User.findByIdAndUpdate(
                 userOneId,
@@ -323,7 +413,7 @@ const sendMessage = async (req, res) => {
 
             await User.findByIdAndUpdate(
                 userTwoId,
-                {$addToSet : { friendLists: userOneId } },
+                { $addToSet: { friendLists: userOneId } },
                 { new: true }
             )
             return res.status(200).json({ msg: 'Message sent successfully', message: newMessage });
@@ -335,7 +425,8 @@ const sendMessage = async (req, res) => {
     }
 };
 
-const getMessages = async (req, res) => { 
+
+const getMessages = async (req, res) => {
     try {
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -351,17 +442,51 @@ const getMessages = async (req, res) => {
         if (!userOneId || !userTwoId) {
             return res.status(400).json({ msg: 'Authorization header is missing UserOne and UserTwo' });
         }
-        const messages = await Message.findOne({
+
+        // 🟢 1. Grab Page and Limit from Query (Default: Page 1, 20 msgs)
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+
+        const conversation = await Message.findOne({
             $or: [
                 { userOne: userOneId, userTwo: userTwoId },
                 { userOne: userTwoId, userTwo: userOneId }
             ]
         });
-        res.status(200).json(messages || { message: [] });
+
+        if (!conversation) {
+            return res.status(200).json({ message: [] });
+        }
+
+        // 🟢 2. PAGINATION LOGIC (Reverse Slice)
+        // Since messages are pushed to the end, Page 1 means the LAST 20 items.
+        const totalMessages = conversation.message.length;
+        
+        // Calculate where to stop reading (End Index)
+        const endIndex = totalMessages - ((page - 1) * limit);
+        
+        // Calculate where to start reading (Start Index)
+        const startIndex = Math.max(0, endIndex - limit);
+
+        // If endIndex is 0 or less, it means we have no more old messages
+        if (endIndex <= 0) {
+            return res.status(200).json({ ...conversation.toObject(), message: [] });
+        }
+
+        // Extract only the required chunk of messages
+        const paginatedMessages = conversation.message.slice(startIndex, endIndex);
+
+        // 🟢 3. Send Response
+        // We use .toObject() to clone the doc and replace the 'message' array with our chunk
+        res.status(200).json({
+            ...conversation.toObject(),
+            message: paginatedMessages
+        });
+
     } catch (err) {
         console.error(err);
         res.status(500).json({ msg: 'Server error while fetching messages' });
     }
 };
 
-module.exports = { Register, Login, getUserDetails, uploadProfileImg, verifyEmailOtp, getAllUsers, sendMessage, getMessages }; 
+module.exports = { Register, Login, getUserDetails, uploadProfileImg, verifyEmailOtp, getAllUsers, sendMessage, getMessages, uploadMedia }; 

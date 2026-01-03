@@ -18,7 +18,7 @@ const ProfileCard = () => {
         } else {
             console.warn('No token found in localStorage');
         }
-    }, []);
+    }, [user, selectedImage]);
 
     const getItem = async () => {
         try {
@@ -58,11 +58,11 @@ const ProfileCard = () => {
                 <div className={styles.profileUserName}>
                     <h5>Your Name</h5>
                     <h4>{user?.name}</h4>
-                    <p>This is not your username or PIN. This name will be visible to your WhatsApp contacts.</p>
+                    <p>This is not your username or PIN. This name will be visible to your ChatApp contacts.</p>
                 </div>
                 <div className={styles.profileAbout}>
                     <h5>About</h5>
-                    <p>Hey there! I am using WhatsApp.</p>
+                    <p>Hey there! I am using ChatApp.</p>
                 </div>
             </div>
         </div>

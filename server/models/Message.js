@@ -11,13 +11,29 @@ const messageSchema = new mongoose.Schema({
         ref: 'user',
         required: true
     },
+
     message: [
         {
-            text: String,
+            text: {
+                type: String,
+            },
+            // 🔹 NEW: image / video URL
+            mediaUrl: {
+                type: String
+            },
+
+            // 🔹 NEW: message type
+            messageType: {
+                type: String,
+                enum: ['text', 'image', 'video', 'document', 'audio', 'pdf'],
+                default: 'text'
+            },
+
             time: {
                 type: Date,
                 default: Date.now,
             },
+
             sender: {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: 'user'
@@ -25,12 +41,11 @@ const messageSchema = new mongoose.Schema({
         }
     ],
 
-
-
     timestamp: {
         type: Date,
         default: Date.now
     },
+
     isRead: {
         type: Boolean,
         default: false

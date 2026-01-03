@@ -11,13 +11,35 @@ const Routers = () => {
   const location = useLocation();
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const authUser = localStorage.getItem("authUser");
-    if (!token && location.pathname !== '/login' && location.pathname !== '/register' && !authUser) {
-      navigate('/login', { replace: true });
+  const token = localStorage.getItem("token");
+  const authUser = localStorage.getItem("authUser");
+  const path = location.pathname;
+
+  // 1. No authUser and no token → only allow login & register
+  if (!authUser && !token) {
+    if (path !== "/login" && path !== "/register") {
+      navigate("/login", { replace: true });
     }
-    
-  }, [ location, navigate]);
+    return;
+  }
+
+  // 2. authUser exists but token not verified → go to verifyEmailOtp
+  if (authUser && !token) {
+    if (path !== "/verifyEmailOtp") {
+      navigate("/verifyEmailOtp", { replace: true });
+    }
+    return;
+  }
+
+  // 3. token exists → go to home
+  if (token) {
+    if (path === "/login" || path === "/register" || path === "/verifyEmailOtp") {
+      navigate("/", { replace: true });
+    }
+  }
+
+}, [location.pathname, navigate]);
+
 
   return (
       <Routes>
