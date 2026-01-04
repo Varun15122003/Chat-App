@@ -1,11 +1,13 @@
 /* eslint-disable */
 import { useAuthContext } from "../context/AuthContext";
 import { useChatContext } from "../context/ChatContext";
+import { useVideoContext } from "../context/VideoContext"; // 🟢 1. Import Video Context
 import { useEffect, useRef, useState } from "react";
 import styles from "./PersonChat.module.css";
 import DocumentCard from "./Cards/DocumentCard";
 import ShowDocumentCard from "./Cards/ShowDocumentCard";
-import FullMediaView from "./FullMediaView"; // 🟢 Import New Component
+import FullMediaView from "./FullMediaView"; 
+// Note: VideoCall component import removed because it's now handled globally in App.jsx
 
 const PersonChat = () => {
     const { user } = useAuthContext();
@@ -22,11 +24,16 @@ const PersonChat = () => {
         socket,
     } = useChatContext();
 
+    // 🟢 2. Get Global Video Controls
+    const { setVideoVisible, callUser } = useVideoContext();
+
     const [messages, setMessages] = useState([]);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const [loading, setLoading] = useState(false);
-    const [viewMedia, setViewMedia] = useState(null); // 🟢
+    
+    // Lightbox State (For viewing images/videos full screen)
+    const [viewMedia, setViewMedia] = useState(null);
 
     const bottomRef = useRef(null);
     const fileActiveRef = useRef(null);
@@ -41,7 +48,7 @@ const PersonChat = () => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
-    // 🟢 1. LOAD MESSAGES & RESET
+    // 1. LOAD MESSAGES & RESET
     useEffect(() => {
         if (chatPerson?._id && user?._id) {
             setPage(1);
@@ -51,17 +58,14 @@ const PersonChat = () => {
         }
     }, [chatPerson, user]);
 
-    // 🟢 2. LISTEN FOR INCOMING MESSAGES (From Port 7000)
-    // 🟢 2. LISTEN FOR INCOMING MESSAGES (Updated for Duplicate Fix)
+    // 2. LISTEN FOR INCOMING MESSAGES
     useEffect(() => {
         if (!socket.current) return;
 
         const handleIncomingMessage = (data) => {
             const incomingMsg = data.message || data;
 
-            // 🟢 DUPLICATE FIX: 
-            // Agar ye message maine khud bheja hai, to isse ignore karo.
-            // Kyunki 'handleSendLocal' ne isse pehle hi add kar diya hai.
+            // Duplicate Fix: Ignore self-sent messages via socket (handled locally)
             if (incomingMsg.sender === user._id) return;
 
             // Check if this message is from the current chat person
@@ -76,9 +80,9 @@ const PersonChat = () => {
         return () => {
             socket.current.off("getMessage", handleIncomingMessage);
         };
-    }, [chatPerson, user]); // user dependency zaroori hai fix ke liye
+    }, [chatPerson, user]);
 
-    // 🟢 3. MESSAGE PAGINATION
+    // 3. MESSAGE PAGINATION
     const loadMessages = async (pageNum, isInitial = false) => {
         if (loading) return;
         setLoading(true);
@@ -122,11 +126,11 @@ const PersonChat = () => {
         }
     };
 
-    // 🟢 4. SEND MESSAGE LOGIC (API + Socket Emit)
+    // 4. SEND MESSAGE LOGIC
     const handleSendLocal = async (e) => {
         e.preventDefault();
 
-        // 1. Send to API (Port 3000) & Get Message Object
+        // 1. Send to API
         const newMessage = await handleSubmit(e);
 
         if (newMessage) {
@@ -134,26 +138,7 @@ const PersonChat = () => {
             setMessages((prev) => [...prev, newMessage]);
             setTimeout(() => scrollToEnd(), 50);
 
-            // 3. Emit to Socket (Port 7000) so the other user gets it
-            // Your backend expects: { userTwoId: ..., ... }
-            if (socket.current) {
-                socket.current.emit("sendMessage", {
-                    userTwoId: chatPerson._id,
-                    senderId: user._id, // Just in case
-                    message: newMessage
-                });
-            }
-        }
-    };
-
-    // 🟢 5. MEDIA UPLOAD CALLBACK
-    const onUploadSuccess = (newMessage) => {
-        if (newMessage) {
-            // Update UI
-            setMessages((prev) => [...prev, newMessage]);
-            setTimeout(() => scrollToEnd(), 50);
-
-            // Emit to Socket
+            // 3. Emit to Socket
             if (socket.current) {
                 socket.current.emit("sendMessage", {
                     userTwoId: chatPerson._id,
@@ -162,6 +147,30 @@ const PersonChat = () => {
                 });
             }
         }
+    };
+
+    // 5. MEDIA UPLOAD CALLBACK
+    const onUploadSuccess = (newMessage) => {
+        if (newMessage) {
+            setMessages((prev) => [...prev, newMessage]);
+            setTimeout(() => scrollToEnd(), 50);
+
+            if (socket.current) {
+                socket.current.emit("sendMessage", {
+                    userTwoId: chatPerson._id,
+                    senderId: user._id,
+                    message: newMessage
+                });
+            }
+        }
+    };
+
+    // 🟢 6. START VIDEO CALL HANDLER
+    const handleStartCall = () => {
+        // This opens the GlobalCallUI in App.jsx
+        setVideoVisible(true);
+        // This triggers the signaling logic in VideoContext
+        callUser(chatPerson._id); 
     };
 
     const formatTime = (isoString) => {
@@ -188,6 +197,9 @@ const PersonChat = () => {
 
     if (!chatPerson) return <div className={styles.container}><img src="chatapp.webp" alt="/" /></div>;
 
+    // Check if user is online based on Socket ID
+    const isOnline = activeUsers?.find((u) => u?._id === chatPerson?._id)?.socketId;
+
     return (
         <div className={styles.personContainer} >
 
@@ -197,8 +209,18 @@ const PersonChat = () => {
                         <div className={styles.personImage}><img src={chatPerson.profileImage} alt="/" /></div>
                         <div className={styles.personName}>
                             <h2>{chatPerson.name}</h2>
-                            <span className={styles.status}>{activeUsers?.find((u) => u?._id === chatPerson?._id) ? "online" : "offline"}</span>
+                            <span className={styles.status}>{isOnline ? "online" : "offline"}</span>
                         </div>
+                    </div>
+                    
+                    {/* 🟢 Video Call Button (Triggers Global UI) */}
+                    <div 
+                        className={styles.personVideoIcon} 
+                        onClick={handleStartCall} 
+                        style={{ cursor: 'pointer', marginLeft: 'auto', marginRight: '20px', color: '#54656f', fontSize: '20px' }}
+                        title="Start Video Call"
+                    >
+                        <i className="fa-solid fa-video"></i>
                     </div>
                 </div>
             </div>
@@ -214,8 +236,7 @@ const PersonChat = () => {
                     {messages?.map((msg, index) => (
                         <div key={index} className={`${styles.message} ${msg.sender === user._id ? styles.right : styles.left}`}>
                             {msg.messageType === 'text' && <p className={styles.messageText}>{msg.text}</p>}
-                            {/* {msg.messageType === 'image' && <img src={msg.mediaUrl} alt="Media" className={styles.messageImage} onLoad={() => { if (page === 1) scrollToEnd() }} />}
-                            {msg.messageType === 'video' && <video src={msg.mediaUrl} controls className={styles.messageVideo} />} */}
+                            
                             {/* IMAGE */}
                             {msg.messageType === 'image' && (
                                 <img
@@ -223,9 +244,8 @@ const PersonChat = () => {
                                     alt="Media"
                                     className={styles.messageImage}
                                     onLoad={() => { if (page === 1) scrollToEnd() }}
-                                    // 🟢 CLICK HANDLER ADDED
                                     onClick={() => setViewMedia({ url: msg.mediaUrl, type: 'image' })}
-                                    style={{ cursor: 'pointer' }} // Pointer dikhana zaroori hai
+                                    style={{ cursor: 'pointer' }}
                                 />
                             )}
 
@@ -233,17 +253,16 @@ const PersonChat = () => {
                             {msg.messageType === 'video' && (
                                 <div style={{ position: 'relative', cursor: 'pointer' }}
                                     onClick={() => setViewMedia({ url: msg.mediaUrl, type: 'video' })}>
-
-                                    {/* Overlay taaki user play button dabaye to full screen khule */}
                                     <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1 }}></div>
-
                                     <video
                                         src={msg.mediaUrl}
                                         className={styles.messageVideo}
                                     />
                                 </div>
                             )}
+                            
                             {msg.messageType === 'audio' && <audio src={msg.mediaUrl} controls className={styles.messageAudio} />}
+                            
                             {(msg.messageType === 'document' || msg.messageType === 'pdf') && (() => {
                                 const isPdf = msg.mediaUrl?.toLowerCase().includes('.pdf');
                                 return (
@@ -277,12 +296,13 @@ const PersonChat = () => {
                     <div className={`${styles.personIcon}`}><div ref={plusRef} className={styles.personIconP} onClick={(e) => { e.stopPropagation(); setIsFileActive((prev) => !prev); }}><i className="fa-solid fa-plus"></i></div></div>
                     <div className={`${styles.personInputSearch}`}><div className={`${styles.personInput}`}><input type="text" placeholder="Type a message" name="message" value={text} onChange={handleChange} required /></div></div>
                     <div className={`${styles.personIcon}`}>
-                        {/* 🟢 Using handleSendLocal for Text */}
                         <div className={`${styles.personIconShare}`} onClick={handleSendLocal}><button type='submit' style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}><i className="fa-solid fa-share"></i></button></div>
                         <div className={`${styles.personIconM}`}><i className="fa-solid fa-microphone"></i></div>
                     </div>
                 </div>
             </form>}
+
+            {/* Lightbox for Media (Still handled locally) */}
             {viewMedia && (
                 <FullMediaView
                     mediaUrl={viewMedia.url}
@@ -290,6 +310,9 @@ const PersonChat = () => {
                     onClose={() => setViewMedia(null)}
                 />
             )}
+            
+            {/* 🟢 Video Call Overlay Removed from here - Now handled by App.jsx */}
+
         </div>
     );
 };
