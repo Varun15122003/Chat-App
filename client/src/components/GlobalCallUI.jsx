@@ -32,7 +32,7 @@ const GlobalCallUI = () => {
                         {call.name} is calling...
                     </h2>
                     <div style={{display:'flex', gap:'10px', justifyContent:'center'}}>
-                        <button onClick={answerCall} className={styles.btnAnswer}>
+                        <button onClick={answerCall} className={styles.btnAnswer} >
                             Answer <i className="fa-solid fa-phone"></i>
                         </button>
                         <button onClick={() => window.location.reload()} className={styles.btnEnd}>

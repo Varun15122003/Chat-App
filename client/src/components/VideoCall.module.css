@@ -129,3 +129,26 @@
     align-items: center;
     gap: 10px;
 }
+
+.btnEnd:hover {
+    background-color: #e02626;
+}
+
+.btnAnswer {
+    padding: 12px 30px;
+    border: none;
+    border-radius: 50px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+
+}
+.btnAnswer:hover {
+    background-color: #0069d9;
+}

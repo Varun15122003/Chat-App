@@ -2,6 +2,7 @@
 import { useAuthContext } from "../context/AuthContext";
 import { useChatContext } from "../context/ChatContext";
 import { useVideoContext } from "../context/VideoContext"; // 🟢 1. Import Video Context
+import { useRenderContext } from "../context/RenderContext";
 import { useEffect, useRef, useState } from "react";
 import styles from "./PersonChat.module.css";
 import DocumentCard from "./Cards/DocumentCard";
@@ -26,6 +27,8 @@ const PersonChat = () => {
 
     // 🟢 2. Get Global Video Controls
     const { setVideoVisible, callUser } = useVideoContext();
+    const { activeTab } = useRenderContext();
+
 
     const [messages, setMessages] = useState([]);
     const [page, setPage] = useState(1);
@@ -195,7 +198,7 @@ const PersonChat = () => {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [isFileActive]);
 
-    if (!chatPerson) return <div className={styles.container}><img src="chatapp.webp" alt="/" /></div>;
+    if (!chatPerson || !(activeTab === 'chat')) return <div className={styles.container}><img src="chatapp.webp" alt="/" /></div>;
 
     // Check if user is online based on Socket ID
     const isOnline = activeUsers?.find((u) => u?._id === chatPerson?._id)?.socketId;
