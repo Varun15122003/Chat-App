@@ -5,6 +5,7 @@ import axios from 'axios'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { useAuthContext } from '../../context/AuthContext'
+const API_URL = import.meta.env.VITE_AUTH_API_URL;
 
 const LoginForm = () => {
     const { setUser, setIsLoggedIn } = useAuthContext()
@@ -20,7 +21,7 @@ const LoginForm = () => {
         }
 
         try {
-            const response = await axios.post('http://localhost:3000/api/auth/login', data, {
+            const response = await axios.post(`${API_URL}/login`, data, {
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -31,7 +32,7 @@ const LoginForm = () => {
                 console.log("Token:", token);
                 localStorage.setItem('token', token)
 
-                const userResponse = await axios.get('http://localhost:3000/api/auth/getUserDetails', {
+                const userResponse = await axios.get(`${API_URL}/getUserDetails`, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },

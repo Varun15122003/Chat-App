@@ -3,6 +3,9 @@ import { useEffect } from 'react';
 import { useAuthContext } from '../../context/AuthContext';
 import axios from 'axios';
 
+const API_URL = import.meta.env.VITE_AUTH_API_URL;
+
+
 const ProfileCard = () => {
     const { user, selectedImage, isLoggedIn, handleFileChange, setSelectedImage, setUser } = useAuthContext();
 
@@ -22,7 +25,7 @@ const ProfileCard = () => {
 
     const getItem = async () => {
         try {
-            const response = await axios.get('http://localhost:3000/api/auth/getUserDetails', {
+            const response = await axios.get(`${API_URL}/getUserDetails`, {
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
             });
             setUser(response.data);

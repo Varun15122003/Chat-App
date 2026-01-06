@@ -9,10 +9,13 @@ const ChatContext = createContext();
 // eslint-disable-next-line react-refresh/only-export-components
 export const useChatContext = () => useContext(ChatContext);
 
-// 🟢 SOCKET PORT (7000)
-const SOCKET_URL = "http://localhost:7000";
-// 🟢 API PORT (3000)
-const API_URL = "http://localhost:3000/api/chat";
+// // 🟢 SOCKET PORT (7000)
+// const SOCKET_URL = "http://localhost:7000";
+// // 🟢 API PORT (3000)
+// const API_URL = "http://localhost:3000/api/chat";
+// 🟢 Development aur Production dono ke liye auto-switch hoga
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
+const API_URL = import.meta.env.VITE_CHAT_API_URL;
 
 const ChatProvider = ({ children }) => {
   const [chatPerson, setChatPerson] = useState(null);

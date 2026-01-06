@@ -1,29 +1,43 @@
+// 🟢 Change 1: Load Environment Variables
+require('dotenv').config();
+
 const { Server } = require("socket.io");
 
-const io = new Server(7000, {
+// 🟢 Change 2: Use Dynamic Port & Origin
+const PORT = process.env.PORT || 7000;
+const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
+
+const io = new Server(PORT, {
     cors: {
-        origin: "http://localhost:5173"
+        origin: CLIENT_URL,
+        methods: ["GET", "POST"]
     }
-})
+});
 
 let users = [];
-// 🟢 NEW: Map to track users in Group Video Rooms { roomId: [socketId, socketId] }
-const roomMap = {};
+const roomMap = {}; // { roomId: [socketId, socketId] }
 
-// Helper: Add User (Text/Presence)
+// 🟢 Change 3: Fix addUser Logic (Update Socket ID on Refresh)
 const addUser = (userData, socketId) => {
-    !users.some(user => user?._id == userData?._id) && users.push({ ...userData, socketId });
+    if (!userData || !userData._id) return;
+    
+    // Pehle agar user exist karta hai to use hatao (taaki purana socket ID hat jaye)
+    users = users.filter(user => user._id !== userData._id);
+    
+    // Ab naye socket ID ke saath add karo
+    users.push({ ...userData, socketId });
 }
 
-// Helper: Get User by MongoDB ID
 const getUser = (userId) => {
     return users.find(user => user?._id == userId);
 }
 
-// Helper: Remove User (Text/Presence)
 const removeUser = (socketId) => {
     users = users.filter(user => user.socketId !== socketId);
 };
+
+console.log(`🚀 Socket Server started on Port ${PORT}`);
+console.log(`🌐 Allowing CORS for: ${CLIENT_URL}`);
 
 io.on('connection', (socket) => {
     console.log(`User connected: ${socket.id}`);
@@ -49,22 +63,19 @@ io.on('connection', (socket) => {
     // ==============================
 
     socket.on("callUser", (data) => {
-        // data: { userToCall, signalData, from, name }
-        // 'userToCall' is the MongoDB ID of the person we are calling
         const user = getUser(data.userToCall);
         
         if (user) {
             io.to(user.socketId).emit("callUser", { 
                 signal: data.signalData, 
-                from: data.from, // This is the caller's MongoID
-                name: data.name 
+                from: data.from, 
+                name: data.name,
+                type: data.type // 🟢 Change 4: Pass 'type' (audio/video)
             });
         }
     });
 
     socket.on("answerCall", (data) => {
-        // data: { to, signal } 
-        // 'to' is the Caller's MongoID. We need to find their socket.
         const user = getUser(data.to);
         
         if (user) {
@@ -73,38 +84,32 @@ io.on('connection', (socket) => {
     });
 
     // ==============================
-    // 3. GROUP VIDEO CALL (Mesh Topology)
+    // 3. GROUP VIDEO CALL
     // ==============================
 
     socket.on("join-room", (roomID) => {
-        // User joins a specific socket room
         socket.join(roomID);
 
-        // Add to roomMap for tracking
         if (!roomMap[roomID]) {
             roomMap[roomID] = [];
         }
-        roomMap[roomID].push(socket.id);
+        // Prevent duplicates
+        if (!roomMap[roomID].includes(socket.id)) {
+            roomMap[roomID].push(socket.id);
+        }
 
-        // Get all OTHER users in this room (to start P2P connections)
         const usersInRoom = roomMap[roomID].filter(id => id !== socket.id);
-        
-        // Send the list of existing users to the new user
         socket.emit("all-users", usersInRoom);
     });
 
-    // New user sends a signal (offer) to an existing user
     socket.on("sending-signal", payload => {
-        // payload: { userToSignal, callerID, signal }
         io.to(payload.userToSignal).emit("user-joined", { 
             signal: payload.signal, 
             callerID: payload.callerID 
         });
     });
 
-    // Existing user sends a signal (answer) back to the new user
     socket.on("returning-signal", payload => {
-        // payload: { signal, callerID }
         io.to(payload.callerID).emit("receiving-returned-signal", { 
             signal: payload.signal, 
             id: socket.id 
@@ -116,18 +121,20 @@ io.on('connection', (socket) => {
     // ==============================
 
     socket.on("disconnect", () => {
-        console.log("User disconnected");
+        console.log(`User disconnected: ${socket.id}`);
         
-        // 1. Remove from Text/Presence list
         removeUser(socket.id);
         io.emit('getUsers', users);
 
-        // 2. Remove from Group Video Rooms
+        // Group Cleanup
         for (const roomID in roomMap) {
-            // Filter out this socket ID
-            roomMap[roomID] = roomMap[roomID].filter(id => id !== socket.id);
+            if (roomMap[roomID].includes(socket.id)) {
+                roomMap[roomID] = roomMap[roomID].filter(id => id !== socket.id);
+                
+                // 🟢 Change 5: Notify others in room to remove video
+                socket.to(roomID).emit("user-disconnected", socket.id);
+            }
             
-            // If room is empty, delete it to save memory
             if (roomMap[roomID].length === 0) {
                 delete roomMap[roomID];
             }

@@ -1,3 +1,4 @@
+/* eslint-disable */
 import styles from './OtpForm.module.css';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
@@ -6,6 +7,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from "jwt-decode";
 import { useAuthContext } from '../context/AuthContext';
+
+const API_URL = import.meta.env.VITE_AUTH_API_URL;
 
 const OtpForm = () => {
     const { setUser, setIsLoggedIn } = useAuthContext();
@@ -36,7 +39,7 @@ const OtpForm = () => {
 
         try {
             const response = await axios.post(
-                'http://localhost:3000/api/auth/verifyEmailOtp',
+                `${API_URL}/verifyEmailOtp`,
                 { otp },
                 {
                     headers: {
@@ -58,7 +61,7 @@ const OtpForm = () => {
                 const token = response.data.token;
                 localStorage.setItem('token', token);
                 localStorage.removeItem('authUser');
-                const userResponse = await axios.get('http://localhost:3000/api/auth/getUserDetails', {
+                const userResponse = await axios.get(`${API_URL}/getUserDetails`, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },

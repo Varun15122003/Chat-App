@@ -5,6 +5,8 @@ import axios from 'axios'
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+const API_URL = import.meta.env.VITE_AUTH_API_URL;
+
 
 const RegisterForm = () => {
     const navigate = useNavigate()
@@ -21,7 +23,7 @@ const RegisterForm = () => {
             password: password
         }
         try {
-            const response = await axios.post('http://localhost:3000/api/auth/register', data, {
+            const response = await axios.post(`${API_URL}/register`, data, {
                 headers: {
                     'Content-Type': 'application/json'
                 }
