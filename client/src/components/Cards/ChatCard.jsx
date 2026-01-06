@@ -1,5 +1,5 @@
 /* eslint-disable */
-import styles from './Chatcard.module.css'
+import styles from './ChatCard.module.css'
 import { useRenderContext } from '../../context/RenderContext'
 import { useAuthContext } from '../../context/AuthContext'
 import { useEffect } from 'react'

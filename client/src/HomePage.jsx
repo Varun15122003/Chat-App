@@ -1,4 +1,4 @@
-import styles from './Homepage.module.css';
+import styles from './HomePage.module.css';
 import Sidebar from './components/Sidebar';
 import PersonChat from './components/PersonChat';
 import { useRenderContext } from './context/RenderContext';
