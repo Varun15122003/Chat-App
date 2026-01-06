@@ -1,6 +1,6 @@
 import styles from './SettingCard.module.css'
 import { useAuthContext } from '../../context/AuthContext'
-import LogOutModel from '../LogoutModel'
+import LogOutModel from '../LogOutModel'
 import { useRenderContext } from '../../context/RenderContext'
 const SettingCard = () => {
     const { user, setShowModel, } = useAuthContext()
