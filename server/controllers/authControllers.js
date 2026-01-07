@@ -9,24 +9,136 @@ const Message = require('../models/Message');
 const OtpVerification = require('../models/OtpVerification');
 
 
+// const Register = async (req, res) => {
+//     try {
+//         const { name, email, password } = req.body;
+//         if (!name || !email || !password) {
+//             return res.status(200).json({ status: false, msg: "please fill all the fields" });
+//         }
+//         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+//         if (!emailRegex.test(email)) {
+//             return res.status(200).json({ status: false, msg: 'Invalid email format' });
+
+//         }
+//         if (password.length < 6) {
+//             return res.status(200).json({ status: false, msg: 'Password should be at least 6 characters long' });
+//         }
+//         const user = await User.findOne({ email: email });
+//         if (user) {
+//             return res.status(200).json({ status: false, msg: 'User hgy already exists' });
+//         }
+//         const salt = await bcrypt.genSalt(10);
+//         const hashedPassword = await bcrypt.hash(password, salt);
+
+//         const newUser = new User({
+//             name: name,
+//             email: email,
+//             password: hashedPassword,
+//         })
+
+//         const authUser = jwt.sign({ email: newUser.email }, jwt_SECRET, { expiresIn: '10m' });
+//         await newUser.save();
+
+//         // verification email
+//         const otp = Math.floor(100000 + Math.random() * 900000);
+//         const mailOptions = {
+//             from: process.env.SMTP_USER,
+//             to: email,
+//             subject: 'Welcome to ChatApp',
+//             text: `Hello ${name},\n\nThank you for registering on ChatApp! Your account has been successfully created with the email: ${email}.\n\nBest regards,\nChatApp Team,\n\nYour OTP for verification is ${otp}\n\n Your OTP is valid for 10 minutes.`,
+//         }
+//         await transporter.sendMail(mailOptions);
+//         const newOtpVerification = new OtpVerification({
+//             email: email,
+//             otp: otp,
+//         })
+//         await newOtpVerification.save();
+
+//         return res.status(201).json({
+//             status: true,
+//             msg: 'User registered successfully and OTP sent to your email',
+//             authUser: authUser,
+//         });
+//     } catch (err) {
+//         console.error(err);
+//         return res.status(500).json({ staus: false, msg: 'An error occurred while registering the user' });
+
+//     }
+
+// }
+
+// const Login = async (req, res) => {
+//     try {
+//         const { email, password } = req.body;
+//         if (!email || !password) {
+//             return res.status(200).json({ status: false, msg: "Please fill all the fields" });
+//         }
+//         const user = await User.findOne({ email: email });
+//         if (user) {
+//             const isValidPassword = await bcrypt.compare(password, user.password);
+//             if (isValidPassword) {
+//                 const token = jwt.sign({
+//                     id: user._id,
+//                     email: user.email,
+//                     name: user.name,
+//                     profileImage: user.profileImage,
+//                 }, jwt_SECRET);
+//                 const authUser = jwt.sign({ email: user.email }, jwt_SECRET, { expiresIn: '10m' });
+//                 if (user.isVerifiedAccount === false) {
+//                     const otp = Math.floor(100000 + Math.random() * 900000);
+//                     const mailOptions = {
+//                         from: process.env.SMTP_USER,
+//                         to: email,
+//                         subject: 'Welcome to ChatApp',
+//                         text: `Hello ${user.name},\n\nThank you for registering on ChatApp! Your OTP is ${otp} and valid for 10 minutes.`,
+//                     };
+//                     await transporter.sendMail(mailOptions);
+//                     const otpVerification = await OtpVerification.findOneAndUpdate(
+//                         { email: email },
+//                         { otp: otp, expiresAt: Date.now() + 10 * 60 * 1000 }, // 10 minutes from now
+//                         { new: true, upsert: true } // Create a new document if it doesn't exist
+//                     )
+//                     return res.status(201).json({
+//                         status: true,
+//                         msg: 'OTP sent to your email',
+//                         authUser: authUser,
+//                     });
+//                 }
+//                 return res.status(200).json({ status: true, msg: 'User logged in successfully', token });
+//             }
+//             return res.status(400).json({ status: false, msg: 'Invalid credentials' });
+//         }
+
+//         return res.status(404).json({ status: false, msg: 'User not found' });
+
+//     } catch (err) {
+//         console.error(err);
+//         return res.status(500).json({ status: false, msg: 'An error occurred while logging in the user' });
+//     }
+// };
 const Register = async (req, res) => {
     try {
         const { name, email, password } = req.body;
+        
+        // 1. Validations
         if (!name || !email || !password) {
             return res.status(200).json({ status: false, msg: "please fill all the fields" });
         }
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             return res.status(200).json({ status: false, msg: 'Invalid email format' });
-
         }
         if (password.length < 6) {
             return res.status(200).json({ status: false, msg: 'Password should be at least 6 characters long' });
         }
-        const user = await User.findOne({ email: email });
-        if (user) {
-            return res.status(200).json({ status: false, msg: 'User hgy already exists' });
+
+        // 2. Check existing user
+        const userExists = await User.findOne({ email: email });
+        if (userExists) {
+            return res.status(200).json({ status: false, msg: 'User already exists' });
         }
+
+        // 3. Hash Password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -34,37 +146,47 @@ const Register = async (req, res) => {
             name: name,
             email: email,
             password: hashedPassword,
-        })
+        });
 
-        const authUser = jwt.sign({ email: newUser.email }, jwt_SECRET, { expiresIn: '10m' });
+        // Save User first
         await newUser.save();
 
-        // verification email
+        // 4. Generate OTP & JWT
+        const authUser = jwt.sign({ email: newUser.email }, jwt_SECRET, { expiresIn: '10m' });
         const otp = Math.floor(100000 + Math.random() * 900000);
-        const mailOptions = {
-            from: process.env.SMTP_USER,
-            to: email,
-            subject: 'Welcome to ChatApp',
-            text: `Hello ${name},\n\nThank you for registering on ChatApp! Your account has been successfully created with the email: ${email}.\n\nBest regards,\nChatApp Team,\n\nYour OTP for verification is ${otp}\n\n Your OTP is valid for 10 minutes.`,
+
+        // 5. Send Email with inner Try-Catch (Render Crash Protection)
+        try {
+            const mailOptions = {
+                from: process.env.SMTP_USER,
+                to: email,
+                subject: 'Welcome to ChatApp - Verify your Email',
+                text: `Hello ${name},\n\nYour OTP for verification is ${otp}.\n\nThis OTP is valid for 10 minutes.\n\nBest regards,\nChatApp Team`,
+            };
+            await transporter.sendMail(mailOptions);
+            
+            // Save OTP to DB only if mail is attempted
+            const newOtpVerification = new OtpVerification({
+                email: email,
+                otp: otp,
+            });
+            await newOtpVerification.save();
+
+        } catch (emailErr) {
+            console.error("Email Error: ", emailErr.message);
+            // We don't return error here so the user is still registered in DB
         }
-        await transporter.sendMail(mailOptions);
-        const newOtpVerification = new OtpVerification({
-            email: email,
-            otp: otp,
-        })
-        await newOtpVerification.save();
 
         return res.status(201).json({
             status: true,
-            msg: 'User registered successfully and OTP sent to your email',
+            msg: 'User registered successfully. Please check your email for OTP.',
             authUser: authUser,
         });
+
     } catch (err) {
-        console.error(err);
-        return res.status(500).json({ staus: false, msg: 'An error occurred while registering the user' });
-
+        console.error("Register Error: ", err);
+        return res.status(500).json({ status: false, msg: 'An error occurred during registration' });
     }
-
 }
 
 const Login = async (req, res) => {
@@ -73,50 +195,66 @@ const Login = async (req, res) => {
         if (!email || !password) {
             return res.status(200).json({ status: false, msg: "Please fill all the fields" });
         }
+
         const user = await User.findOne({ email: email });
-        if (user) {
-            const isValidPassword = await bcrypt.compare(password, user.password);
-            if (isValidPassword) {
-                const token = jwt.sign({
-                    id: user._id,
-                    email: user.email,
-                    name: user.name,
-                    profileImage: user.profileImage,
-                }, jwt_SECRET);
-                const authUser = jwt.sign({ email: user.email }, jwt_SECRET, { expiresIn: '10m' });
-                if (user.isVerifiedAccount === false) {
-                    const otp = Math.floor(100000 + Math.random() * 900000);
-                    const mailOptions = {
-                        from: process.env.SMTP_USER,
-                        to: email,
-                        subject: 'Welcome to ChatApp',
-                        text: `Hello ${user.name},\n\nThank you for registering on ChatApp! Your OTP is ${otp} and valid for 10 minutes.`,
-                    };
-                    await transporter.sendMail(mailOptions);
-                    const otpVerification = await OtpVerification.findOneAndUpdate(
-                        { email: email },
-                        { otp: otp, expiresAt: Date.now() + 10 * 60 * 1000 }, // 10 minutes from now
-                        { new: true, upsert: true } // Create a new document if it doesn't exist
-                    )
-                    return res.status(201).json({
-                        status: true,
-                        msg: 'OTP sent to your email',
-                        authUser: authUser,
-                    });
-                }
-                return res.status(200).json({ status: true, msg: 'User logged in successfully', token });
-            }
+        if (!user) {
+            return res.status(404).json({ status: false, msg: 'User not found' });
+        }
+
+        const isValidPassword = await bcrypt.compare(password, user.password);
+        if (!isValidPassword) {
             return res.status(400).json({ status: false, msg: 'Invalid credentials' });
         }
 
-        return res.status(404).json({ status: false, msg: 'User not found' });
+        // 1. Check if Account is Verified
+        if (user.isVerifiedAccount === false) {
+            const authUser = jwt.sign({ email: user.email }, jwt_SECRET, { expiresIn: '10m' });
+            const otp = Math.floor(100000 + Math.random() * 900000);
+
+            try {
+                const mailOptions = {
+                    from: process.env.SMTP_USER,
+                    to: email,
+                    subject: 'Verify your ChatApp Account',
+                    text: `Hello ${user.name},\n\nYour OTP is ${otp}. It is valid for 10 minutes.`,
+                };
+                await transporter.sendMail(mailOptions);
+
+                await OtpVerification.findOneAndUpdate(
+                    { email: email },
+                    { otp: otp, expiresAt: Date.now() + 10 * 60 * 1000 },
+                    { new: true, upsert: true }
+                );
+            } catch (mailErr) {
+                console.error("Login Email Error: ", mailErr.message);
+            }
+
+            return res.status(201).json({
+                status: true,
+                msg: 'Account not verified. OTP sent to your email',
+                authUser: authUser,
+            });
+        }
+
+        // 2. Successful Login Token
+        const token = jwt.sign({
+            id: user._id,
+            email: user.email,
+            name: user.name,
+            profileImage: user.profileImage,
+        }, jwt_SECRET, { expiresIn: '24h' });
+
+        return res.status(200).json({ 
+            status: true, 
+            msg: 'User logged in successfully', 
+            token 
+        });
 
     } catch (err) {
-        console.error(err);
-        return res.status(500).json({ status: false, msg: 'An error occurred while logging in the user' });
+        console.error("Login Error: ", err);
+        return res.status(500).json({ status: false, msg: 'An error occurred while logging in' });
     }
 };
-
 
 const getUserDetails = async (req, res) => {
     const authHeader = req.headers.authorization;
