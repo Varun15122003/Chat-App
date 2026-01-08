@@ -148,16 +148,23 @@ const Register = async (req, res) => {
             password: hashedPassword,
         });
 
-        // // Save User first
-        // await newUser.save();
-
         // 4. Generate OTP & JWT
         const authUser = jwt.sign({ email: newUser.email }, jwt_SECRET, { expiresIn: '10m' });
-         // Save User first
-        await newUser.save();
         const otp = Math.floor(100000 + Math.random() * 900000);
 
-        // 5. Send Email with inner Try-Catch (Render Crash Protection)
+        // 5. Save User & OTP to Database First 🟢 (Sabse important change)
+        // Isse agar email fail bhi ho jaye, user DB mein rahega aur OTP verify ho sakega
+        await newUser.save();
+        
+        const newOtpVerification = new OtpVerification({
+            email: email,
+            otp: otp,
+            createdAt: Date.now(),
+            expiresAt: Date.now() + 600000 // 10 minutes expiry
+        });
+        await newOtpVerification.save();
+
+        // 6. Send Email in a non-blocking way with Try-Catch
         try {
             const mailOptions = {
                 from: process.env.SMTP_USER,
@@ -165,23 +172,21 @@ const Register = async (req, res) => {
                 subject: 'Welcome to ChatApp - Verify your Email',
                 text: `Hello ${name},\n\nYour OTP for verification is ${otp}.\n\nThis OTP is valid for 10 minutes.\n\nBest regards,\nChatApp Team`,
             };
-            await transporter.sendMail(mailOptions);
             
-            // Save OTP to DB only if mail is attempted
-            const newOtpVerification = new OtpVerification({
-                email: email,
-                otp: otp,
-            });
-            await newOtpVerification.save();
+            // Render par timeout se bachne ke liye hum await karenge par inner try-catch ke sath
+            await transporter.sendMail(mailOptions);
+            console.log("Email sent successfully to:", email);
 
         } catch (emailErr) {
-            console.error("Email Error: ", emailErr.message);
-            // We don't return error here so the user is still registered in DB
+            // Agar Render par connection timeout hota hai toh yahan error aayega par 
+            // response 201 hi jayega kyunki humne upar OTP save kar liya hai.
+            console.error("Email Sending Failed (Render Timeout): ", emailErr.message);
         }
 
+        // 7. Send Success Response
         return res.status(201).json({
             status: true,
-            msg: 'User registered successfully. Please check your email for OTP.',
+            msg: 'User registered successfully. Moving to verification...',
             authUser: authUser,
         });
 
