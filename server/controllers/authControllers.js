@@ -148,11 +148,13 @@ const Register = async (req, res) => {
             password: hashedPassword,
         });
 
-        // Save User first
-        await newUser.save();
+        // // Save User first
+        // await newUser.save();
 
         // 4. Generate OTP & JWT
         const authUser = jwt.sign({ email: newUser.email }, jwt_SECRET, { expiresIn: '10m' });
+         // Save User first
+        await newUser.save();
         const otp = Math.floor(100000 + Math.random() * 900000);
 
         // 5. Send Email with inner Try-Catch (Render Crash Protection)
