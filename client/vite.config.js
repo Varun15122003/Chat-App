@@ -15,16 +15,27 @@ export default defineConfig({
     }),
   ],
   define: {
+    // Docker/Browser compatibility ke liye global ko window se map karna
     global: 'window',
   },
   server: {
-    // 🟢 1. Vite ko allow karein ki wo kisi bhi network interface par chale
-    host: true, 
-    // 🟢 2. Port fix karein (jo ngrok point kar raha hai)
+    // 🟢 Docker container ke bahar access dene ke liye zaroori hai
+    host: '0.0.0.0', 
+    
+    // 🟢 Aapka fixed port
     port: 5173,
+
+    // 🟢 HMR (Hot Module Replacement) ke liye settings taaki code change auto-reflect ho
+    hmr: {
+      clientPort: 443, // Agar ngrok (https) use kar rahe hain toh 443 zaroori hai
+    },
+
+    // 🟢 Security setting: Sirf in hosts ko allow karein
     allowedHosts: [
-      'd46edd15437a.ngrok-free.app', // 🟢 3. Sirf domain name dalein (no https://)
-      '.ngrok-free.app'              // Optional: Saare ngrok subdomains allow karne ke liye
+      'd46edd15437a.ngrok-free.app', 
+      '.ngrok-free.app',
+      'localhost',
+      '.azurecontainerapps.io' // Azure deployment ke liye pehle se add kar diya
     ]
   }
 })
