@@ -19,8 +19,7 @@ jobs:
         run: |
           docker build -t webchatapp-image:${{ github.sha }} \
           --build-arg VITE_SOCKET_URL="https://webchatapp.azurewebsites.net" \
-          --build-arg VITE_CHAT_API_URL="https://webchatapp.azurewebsites.net/api/chat" \
-          --build-arg VITE_AUTH_API_URL="https://webchatapp.azurewebsites.net/api/auth" .
+          --build-arg VITE_API_URL="https://webchatapp.azurewebsites.net" .
           docker save webchatapp-image:${{ github.sha }} > webchatapp.tar
 
       - name: Upload image as artifact
