@@ -1,6 +1,3 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
 name: Build and deploy container app to Azure Web App - webchatapp
 
 on:
@@ -32,16 +29,16 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
-          file: ./Dockerfile  # Root folder ki Dockerfile use karega
+          file: ./Dockerfile
           push: true
+          # Vite Build Args yahan pass ho rahe hain
+          build-args: |
+            VITE_SOCKET_URL=https://webchatapp.azurewebsites.net
+            VITE_API_URL=https://webchatapp.azurewebsites.net
           tags: mcr.microsoft.com/${{ secrets.AZUREAPPSERVICE_CONTAINERUSERNAME_145F78064F4A4B0798385056B1BCA730 }}/appsvc/staticsite:${{ github.sha }}
 
   deploy:
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
-
     needs: build
     permissions:
       id-token: write
@@ -56,6 +53,7 @@ jobs:
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_2FB0AA5F31EC4429B5F62C03C409FDAD }}
 
       - name: Deploy to Azure Web App
+        id: deploy-to-webapp
         uses: azure/webapps-deploy@v2
         with:
           app-name: 'webchatapp'

@@ -1,24 +1,22 @@
 FROM node:18-alpine
 WORKDIR /app
 
-# Sabhi folders ki package files copy karein
-COPY client/package*.json ./client/
-COPY server/package*.json ./server/
-COPY socket/package*.json ./socket/
+# Vite build ke liye variables declare karein
+ARG VITE_SOCKET_URL
+ARG VITE_API_URL
 
-# Dependencies install karein
-RUN cd client && npm install
+# Inhe build environment mein set karein
+ENV VITE_SOCKET_URL=$VITE_SOCKET_URL
+ENV VITE_API_URL=$VITE_API_URL
+
+COPY . .
+
+# Dependencies aur Build
+RUN cd client && npm install && npm run build
 RUN cd server && npm install
 RUN cd socket && npm install
 
-# Poora code copy karein
-COPY . .
-
-# Client ko build karein
-RUN cd client && npm run build
-
-# Port 8080 expose karein
 EXPOSE 8080
 
-# Server aur Socket dono ko ek saath start karein
+# Dono server ko ek saath start karein
 CMD ["sh", "-c", "node socket/index.js & node server/index.js"]
