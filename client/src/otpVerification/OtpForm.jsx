@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from "jwt-decode";
 import { useAuthContext } from '../context/AuthContext';
 
-const API_URL = import.meta.env.VITE_AUTH_API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 const OtpForm = () => {
     const { setUser, setIsLoggedIn } = useAuthContext();
@@ -39,7 +39,7 @@ const OtpForm = () => {
 
         try {
             const response = await axios.post(
-                `${API_URL}/verifyEmailOtp`,
+                `${API_URL}/api/auth/verifyEmailOtp`,
                 { otp },
                 {
                     headers: {
@@ -61,7 +61,7 @@ const OtpForm = () => {
                 const token = response.data.token;
                 localStorage.setItem('token', token);
                 localStorage.removeItem('authUser');
-                const userResponse = await axios.get(`${API_URL}/getUserDetails`, {
+                const userResponse = await axios.get(`${API_URL}/api/auth/getUserDetails`, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },

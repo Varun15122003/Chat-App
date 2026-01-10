@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useAuthContext } from '../../context/AuthContext';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_AUTH_API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 
 const ProfileCard = () => {
@@ -25,7 +25,7 @@ const ProfileCard = () => {
 
     const getItem = async () => {
         try {
-            const response = await axios.get(`${API_URL}/getUserDetails`, {
+            const response = await axios.get(`${API_URL}/api/auth/getUserDetails`, {
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
             });
             setUser(response.data);

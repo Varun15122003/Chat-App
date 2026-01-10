@@ -1,5 +1,4 @@
 FROM node:18-alpine
-
 WORKDIR /app
 
 # Sabhi folders ki package files copy karein
@@ -12,14 +11,14 @@ RUN cd client && npm install
 RUN cd server && npm install
 RUN cd socket && npm install
 
-# Saara source code copy karein
+# Poora code copy karein
 COPY . .
 
 # Client ko build karein
 RUN cd client && npm run build
 
-# Port 8080 expose karein (Azure standard)
+# Port 8080 expose karein
 EXPOSE 8080
 
-# Ek startup script banate hain jo dono ko chalaye
+# Server aur Socket dono ko ek saath start karein
 CMD ["sh", "-c", "node socket/index.js & node server/index.js"]

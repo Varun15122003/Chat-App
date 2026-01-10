@@ -15,7 +15,7 @@ export const useChatContext = () => useContext(ChatContext);
 // const API_URL = "http://localhost:3000/api/chat";
 // 🟢 Development aur Production dono ke liye auto-switch hoga
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
-const API_URL = import.meta.env.VITE_CHAT_API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 const ChatProvider = ({ children }) => {
   const [chatPerson, setChatPerson] = useState(null);
@@ -72,7 +72,7 @@ const ChatProvider = ({ children }) => {
 
     try {
       const res = await axios.get(
-        `${API_URL}/${user._id}/${chatPerson._id}?page=${page}&limit=20`,
+        `${API_URL}/api/chat/${user._id}/${chatPerson._id}?page=${page}&limit=20`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -99,7 +99,7 @@ const ChatProvider = ({ children }) => {
 
     try {
       const res = await axios.post(
-        `${API_URL}/uploadMedia`,
+        `${API_URL}/api/chat/uploadMedia`,
         formData,
         {
           headers: {
@@ -153,7 +153,7 @@ const ChatProvider = ({ children }) => {
 
     try {
       const res = await axios.post(
-        `${API_URL}/sendMessage`,
+        `${API_URL}/api/chat/sendMessage`,
         data,
         {
           headers: {
@@ -189,7 +189,7 @@ const ChatProvider = ({ children }) => {
 
     try {
       const res = await axios.post(
-        `${API_URL}/sendMessage`,
+        `${API_URL}/api/chat/sendMessage`,
         data,
         {
           headers: {

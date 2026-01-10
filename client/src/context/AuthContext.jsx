@@ -7,7 +7,7 @@ import { useRenderContext } from './RenderContext';
 
 const AuthContext = createContext();
 
-const API_URL = import.meta.env.VITE_AUTH_API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const useAuthContext = () => useContext(AuthContext);
@@ -25,7 +25,7 @@ const AuthProvider = ({ children }) => {
 
     const fetchUsers = async () => {
         try {
-            const response = await axios.get(`${API_URL}/getAllUsers`, {
+            const response = await axios.get(`${API_URL}/api/auth/getAllUsers`, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('token')}`,
                 },
@@ -47,7 +47,7 @@ const AuthProvider = ({ children }) => {
 
         const fetchUser = async () => {
             try {
-                await axios.post(`${API_URL}/uploadProfileImg`, formData, {
+                await axios.post(`${API_URL}/api/auth/uploadProfileImg`, formData, {
                     headers: {
                         Authorization: `Bearer ${localStorage.getItem('token')}`,
                     },
@@ -62,7 +62,7 @@ const AuthProvider = ({ children }) => {
 
     const fetchUser = async (token) => {
         try {
-            const response = await axios.get(`${API_URL}/getUserDetails`, {
+            const response = await axios.get(`${API_URL}/api/auth/getUserDetails`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
