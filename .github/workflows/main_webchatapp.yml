@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build:
@@ -18,7 +19,8 @@ jobs:
         run: |
           docker build -t webchatapp-image:${{ github.sha }} \
           --build-arg VITE_SOCKET_URL="https://webchatapp.azurewebsites.net" \
-          --build-arg VITE_API_URL="https://webchatapp.azurewebsites.net/api/auth" .
+          --build-arg VITE_CHAT_API_URL="https://webchatapp.azurewebsites.net/api/chat" \
+          --build-arg VITE_AUTH_API_URL="https://webchatapp.azurewebsites.net/api/auth" .
           docker save webchatapp-image:${{ github.sha }} > webchatapp.tar
 
       - name: Upload image as artifact
@@ -30,6 +32,11 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build
+    # OIDC Token generation ke liye permissions
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
       - name: Download image from build job
         uses: actions/download-artifact@v4
