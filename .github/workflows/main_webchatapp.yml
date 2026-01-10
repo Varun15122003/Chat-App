@@ -4,48 +4,39 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Log in to container registry
-        uses: docker/login-action@v2
-        with:
-          registry: mcr.microsoft.com/
-          username: ${{ secrets.AZUREAPPSERVICE_CONTAINERUSERNAME_145F78064F4A4B0798385056B1BCA730 }}
-          password: ${{ secrets.AZUREAPPSERVICE_CONTAINERPASSWORD_35FB31D18FF3487191B279667392C8B6 }}
+      - name: Build Docker image locally
+        run: |
+          docker build -t webchatapp-image:${{ github.sha }} \
+          --build-arg VITE_SOCKET_URL="https://webchatapp.azurewebsites.net" \
+          --build-arg VITE_API_URL="https://webchatapp.azurewebsites.net/api/auth" .
+          docker save webchatapp-image:${{ github.sha }} > webchatapp.tar
 
-      - name: Build and push container image
-        uses: docker/build-push-action@v3
+      - name: Upload image as artifact
+        uses: actions/upload-artifact@v4
         with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          # Vite Build Args yahan pass ho rahe hain
-          build-args: |
-            VITE_SOCKET_URL=https://webchatapp.azurewebsites.net
-            VITE_API_URL=https://webchatapp.azurewebsites.net
-          tags: mcr.microsoft.com/${{ secrets.AZUREAPPSERVICE_CONTAINERUSERNAME_145F78064F4A4B0798385056B1BCA730 }}/appsvc/staticsite:${{ github.sha }}
+          name: docker-image
+          path: webchatapp.tar
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
-    permissions:
-      id-token: write
-      contents: read
-
     steps:
-      - name: Login to Azure
+      - name: Download image from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+
+      - name: Azure Login
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_A921255B2331476BA94BE6736C887D91 }}
@@ -53,9 +44,7 @@ jobs:
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_2FB0AA5F31EC4429B5F62C03C409FDAD }}
 
       - name: Deploy to Azure Web App
-        id: deploy-to-webapp
         uses: azure/webapps-deploy@v2
         with:
           app-name: 'webchatapp'
-          slot-name: 'Production'
-          images: 'mcr.microsoft.com/${{ secrets.AZUREAPPSERVICE_CONTAINERUSERNAME_145F78064F4A4B0798385056B1BCA730 }}/appsvc/staticsite:${{ github.sha }}'
+          images: 'webchatapp-image:${{ github.sha }}'
