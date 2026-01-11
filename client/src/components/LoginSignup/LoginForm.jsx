@@ -5,7 +5,7 @@ import axios from 'axios'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { useAuthContext } from '../../context/AuthContext'
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || "https://webchatapp.azurewebsites.net";
 
 const LoginForm = () => {
     const { setUser, setIsLoggedIn } = useAuthContext()

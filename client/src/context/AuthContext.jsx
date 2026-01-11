@@ -7,7 +7,7 @@ import { useRenderContext } from './RenderContext';
 
 const AuthContext = createContext();
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || "https://webchatapp.azurewebsites.net";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const useAuthContext = () => useContext(AuthContext);

@@ -1,7 +1,8 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const jwt_SECRET = "varunchatapp";
+// const jwt_SECRET = "varunchatapp";
+const jwt_SECRET = process.env.JWT_SECRET || "varunchatapp";
 
 const cloudinary = require('../middlewares/cloudinary');
 const transporter = require('../config/nodemailer');

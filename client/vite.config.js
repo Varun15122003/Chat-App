@@ -15,27 +15,21 @@ export default defineConfig({
     }),
   ],
   define: {
-    // Docker/Browser compatibility ke liye global ko window se map karna
-    global: 'window',
+    // Azure/Docker environment compatibility
+    'global': 'window',
+  },
+  // Build settings zaroori hain taaki output sahi folder mein jaye
+  build: {
+    outDir: 'dist',
+    chunkSizeWarningLimit: 1600,
   },
   server: {
-    // 🟢 Docker container ke bahar access dene ke liye zaroori hai
     host: '0.0.0.0', 
-    
-    // 🟢 Aapka fixed port
     port: 5173,
-
-    // 🟢 HMR (Hot Module Replacement) ke liye settings taaki code change auto-reflect ho
-    hmr: {
-      clientPort: 443, // Agar ngrok (https) use kar rahe hain toh 443 zaroori hai
-    },
-
-    // 🟢 Security setting: Sirf in hosts ko allow karein
     allowedHosts: [
-      'd46edd15437a.ngrok-free.app', 
-      '.ngrok-free.app',
       'localhost',
-      '.azurecontainerapps.io' // Azure deployment ke liye pehle se add kar diya
+      '.azurewebsites.net', // 🟢 Azure Web Apps ke liye ye zaroori hai
+      'webchatapp.azurewebsites.net'
     ]
   }
 })
