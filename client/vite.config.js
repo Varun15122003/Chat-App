@@ -29,7 +29,7 @@ export default defineConfig({
     allowedHosts: [
       'localhost',
       '.azurewebsites.net', // 🟢 Azure Web Apps ke liye ye zaroori hai
-      'webchatapp.azurewebsites.net'
+      'https://webchatapp-gee4a3a7d3g7aqbe.centralindia-01.azurewebsites.net'
     ]
   }
 })

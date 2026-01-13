@@ -18,8 +18,8 @@ jobs:
       - name: Build Docker image locally
         run: |
           docker build -t webchatapp-image:${{ github.sha }} \
-          --build-arg VITE_SOCKET_URL="https://webchatapp.azurewebsites.net" \
-          --build-arg VITE_API_URL="https://webchatapp.azurewebsites.net" \
+          --build-arg VITE_SOCKET_URL="https://webchatapp-gee4a3a7d3g7aqbe.centralindia-01.azurewebsites.net" \
+          --build-arg VITE_API_URL="https://webchatapp-gee4a3a7d3g7aqbe.centralindia-01.azurewebsites.net" \
           --build-arg VITE_GOOGLE_CLIENT_ID="499832833774-cnt8rhtb7m0skk7h1eueqlq7juvm9g.apps.googleusercontent.com" .
           docker save webchatapp-image:${{ github.sha }} > webchatapp.tar
 

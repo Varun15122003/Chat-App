@@ -5,7 +5,7 @@ import axios from 'axios'
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-const API_URL = import.meta.env.VITE_API_URL || "https://webchatapp.azurewebsites.net";
+const API_URL = import.meta.env.VITE_API_URL || "https://webchatapp-gee4a3a7d3g7aqbe.centralindia-01.azurewebsites.net";
 
 
 const RegisterForm = () => {

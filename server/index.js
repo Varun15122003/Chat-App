@@ -16,7 +16,7 @@ const app = express();
 
 const corsOptions = {
     // Azure URL aur localhost dono ko allow karein
-    origin: [process.env.CLIENT_URL, "http://localhost:5173", "https://webchatapp.azurewebsites.net"],
+    origin: [process.env.CLIENT_URL, "http://localhost:5173", "https://webchatapp-gee4a3a7d3g7aqbe.centralindia-01.azurewebsites.net"],
     methods: ['GET', 'POST'],
     credentials: true,
     optionSuccessStatus: 200,

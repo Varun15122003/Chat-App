@@ -15,7 +15,7 @@ export const useChatContext = () => useContext(ChatContext);
 // const API_URL = "http://localhost:3000/api/chat";
 // 🟢 Development aur Production dono ke liye auto-switch hoga
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
-const API_URL = import.meta.env.VITE_API_URL || "https://webchatapp.azurewebsites.net";
+const API_URL = import.meta.env.VITE_API_URL || "https://webchatapp-gee4a3a7d3g7aqbe.centralindia-01.azurewebsites.net";
 
 const ChatProvider = ({ children }) => {
   const [chatPerson, setChatPerson] = useState(null);
