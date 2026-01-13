@@ -22,4 +22,4 @@ RUN cd socket && npm install
 EXPOSE 8080
 
 # Dono server ko ek saath start karein
-CMD ["sh", "-c", "node socket/index.js & node server/index.js"]
+CMD ["node", "server/index.js"]
