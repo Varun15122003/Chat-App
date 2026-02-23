@@ -6,16 +6,14 @@ import io from "socket.io-client";
 
 const ChatContext = createContext();
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useChatContext = () => useContext(ChatContext);
 
-// // 🟢 SOCKET PORT (7000)
-// const SOCKET_URL = "http://localhost:7000";
-// // 🟢 API PORT (3000)
-// const API_URL = "http://localhost:3000/api/chat";
-// 🟢 Development aur Production dono ke liye auto-switch hoga
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
-const API_URL = import.meta.env.VITE_API_URL || "https://webchatapp-gee4a3a7d3g7aqbe.centralindia-01.azurewebsites.net";
+// 🟢 FIX 1: Better Environment Variable Handling with Fallbacks
+// Vite me import.meta.env use hota hai. 
+// Fallback dena achi practice hai incase .env load na ho paye.
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:7000";
+// Dhyaan dein: Yahan maine /api/chat hata diya hai, use hum requests me add karenge.
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 const ChatProvider = ({ children }) => {
   const [chatPerson, setChatPerson] = useState(null);
@@ -31,53 +29,75 @@ const ChatProvider = ({ children }) => {
   const { user } = useAuthContext();
   const socket = useRef(null);
 
-  // 🔹 1. Socket Connection (Optimized for React Strict Mode)
+  // 🔹 1. Socket Connection
   useEffect(() => {
-    // Agar socket pehle se connected hai to naya mat banao
-    if (socket.current) return;
+    // Agar socket pehle se hai, ya user logged in nahi hai, to aage mat badho
+    if (socket.current || !user) return;
 
     socket.current = io(SOCKET_URL, {
-      transports: ['websocket'],      // Polling error fix
-      reconnection: true,             // Auto reconnect enable
-      reconnectionAttempts: 5,        // Max 5 attempts
-      reconnectionDelay: 1000,        // 1 sec delay
+      transports: ['websocket'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      // 🟢 FIX 2: Security & Session - Credentials send karna zaroori ho sakta hai agar backend me cookies ya session hai
+      withCredentials: true 
+    });
+
+    // 🟢 FIX 3: Add basic connection event listeners for debugging
+    socket.current.on('connect', () => {
+        console.log("✅ Socket Connected with ID:", socket.current.id);
+        // Connect hone par hi user add karo
+        socket.current.emit("addUsers", user);
+    });
+
+    socket.current.on('connect_error', (err) => {
+        console.error("❌ Socket Connection Error:", err.message);
     });
 
     return () => {
-      // Cleanup: Disconnect on unmount
       if (socket.current) {
         socket.current.disconnect();
         socket.current = null;
       }
-    }
-  }, []);
+    };
+  }, [user]); // Re-run jab user login/logout ho
 
-  // 🔹 2. Add User & Listen for Active Users
+  // 🔹 2. Listen for Active Users
   useEffect(() => {
     if (!user || !socket.current) return;
-
-    // Backend expects "addUsers"
-    socket.current.emit("addUsers", user);
 
     // Backend emits "getUsers"
     socket.current.on("getUsers", (users) => {
       setActiveUsers(users);
     });
+
+    // Cleanup listener on unmount
+    return () => {
+        if(socket.current){
+             socket.current.off("getUsers");
+        }
+    }
   }, [user]);
 
 
-  // 🔹 3. Fetch Messages (API Port 3000)
+  // 🟢 FIX 4: Centralized Axios Instance (Optional but Highly Recommended)
+  // Har request me header pass karne se better hai ek instance banana
+  const getAuthHeaders = () => {
+      const token = localStorage.getItem("token");
+      return {
+         headers: { Authorization: token ? `Bearer ${token}` : '' }
+      }
+  }
+
+  // 🔹 3. Fetch Messages
   const fetchMessages = async (page = 1) => {
     if (!user || !chatPerson) return [];
 
     try {
+      // API_URL ka use kiya aur path manually joda
       const res = await axios.get(
         `${API_URL}/api/chat/${user._id}/${chatPerson._id}?page=${page}&limit=20`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
+        getAuthHeaders()
       );
 
       if (res.status === 200) {
@@ -90,7 +110,7 @@ const ChatProvider = ({ children }) => {
     }
   };
 
-  // 🔹 Upload Media Helper (API Port 3000)
+  // 🔹 Upload Media Helper
   const uploadMedia = async (file) => {
     if (!file) return null;
 
@@ -103,8 +123,9 @@ const ChatProvider = ({ children }) => {
         formData,
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+            ...getAuthHeaders().headers,
+            'Content-Type': 'multipart/form-data', // 🟢 FIX 5: FormData ke liye multipart zaroori hai
+          }
         }
       );
       return res.data;
@@ -114,11 +135,9 @@ const ChatProvider = ({ children }) => {
     }
   };
 
-  // 🔹 Handle File Upload Logic (Called by UI)
   const handleFileUpload = async () => {
     const data = await uploadMedia(selectedFile);
     if (data) {
-      // Media upload hone ke baad message bhejo
       return await sendMediaMessage(data.mediaUrl, data.mediaType);
     }
     return null;
@@ -133,7 +152,7 @@ const ChatProvider = ({ children }) => {
     setIsDocumentPreviewActive(true);
   };
 
-  // 🔹 Send TEXT Message (API Port 3000)
+  // 🔹 Send TEXT Message
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!text.trim()) return null;
@@ -155,16 +174,12 @@ const ChatProvider = ({ children }) => {
       const res = await axios.post(
         `${API_URL}/api/chat/sendMessage`,
         data,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
+        getAuthHeaders()
       );
 
       if (res.status === 200 || res.status === 201) {
         setText("");
-        return messageObject; // Return for UI update
+        return messageObject;
       }
     } catch (err) {
       console.error("Send message error:", err);
@@ -172,7 +187,7 @@ const ChatProvider = ({ children }) => {
     }
   };
 
-  // 🔹 Send MEDIA Message (API Port 3000)
+  // 🔹 Send MEDIA Message
   const sendMediaMessage = async (mediaUrl, type) => {
     const messageObject = {
       messageType: type,
@@ -191,15 +206,11 @@ const ChatProvider = ({ children }) => {
       const res = await axios.post(
         `${API_URL}/api/chat/sendMessage`,
         data,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
+        getAuthHeaders()
       );
 
       if (res.status === 200) {
-        return messageObject; // Return for UI update
+        return messageObject;
       }
     } catch (err) {
       console.error("Media send error:", err);
@@ -227,8 +238,8 @@ const ChatProvider = ({ children }) => {
         setIsDocumentPreviewActive,
         isFileActive,
         setIsFileActive,
-        selectedFile,      // Exported for ShowDocumentCard
-        setSelectedFile,   // Exported for ShowDocumentCard
+        selectedFile,
+        setSelectedFile,
       }}
     >
       {children}

@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from "jwt-decode";
 import { useAuthContext } from '../context/AuthContext';
 
-const API_URL = import.meta.env.VITE_API_URL || "https://webchatapp-gee4a3a7d3g7aqbe.centralindia-01.azurewebsites.net";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 const OtpForm = () => {
     const { setUser, setIsLoggedIn } = useAuthContext();

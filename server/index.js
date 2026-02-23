@@ -1,23 +1,22 @@
 const express = require('express');
 const dotenv = require('dotenv');
-const path = require('path'); // Path module add kiya
+const cors = require('cors');
+const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const messageRoutes = require('./routes/messageRoutes');
-const connectDB = require('./config/db');
-const cors = require('cors');
 
+// Load env variables
 dotenv.config();
-connectDB();
 
-// Azure hamesha process.env.PORT provide karta hai
-const PORT = process.env.PORT || 8080; 
+// Connect to Database
+connectDB();
 
 const app = express();
 
+// CORS configure karein (Apne Frontend ka URL allow karein)
 const corsOptions = {
-    // Azure URL aur localhost dono ko allow karein
-    origin: [process.env.CLIENT_URL, "http://localhost:5173", "https://webchatapp-gee4a3a7d3g7aqbe.centralindia-01.azurewebsites.net"],
-    methods: ['GET', 'POST'],
+    origin: [process.env.CLIENT_URL, "http://localhost:5173"], 
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
     optionSuccessStatus: 200,
 };
@@ -26,25 +25,27 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 1. Pehle API Routes rakhein
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', messageRoutes);
 
-// 2. Frontend ki Static files ka raasta (Docker structure ke hisaab se)
-// Agar aap Vite use kar rahe hain toh 'dist' hoga, Create React App hai toh 'build'
-const __dirname_root = path.resolve();
-app.use(express.static(path.join(__dirname_root, 'client/dist')));
-
-// 3. Welcome Message ya API check
+// Vercel Health Check Route
 app.get('/api/status', (req, res) => {
-    res.send('Server is running and healthy!');
+    res.send('Express API is running perfectly on Vercel!');
 });
 
-// 4. Sabse niche: Har wo request jo API nahi hai, use Frontend bhejein
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname_root, 'client', 'dist', 'index.html'));
-});
+// 🟢 VERCEL KE LIYE SABSE ZAROORI CHANGE:
+// app.listen() hata diya gaya hai. 
+// Vercel serverless functions use karta hai, isliye module.exports zaroori hai.
+// ... Upar ka saara code same rahega (Routes, CORS etc.) ...
 
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+// 🟢 LOCALHOST KE LIYE (Jab aap apne computer par test kar rahe ho)
+if (process.env.NODE_ENV !== 'production') {
+    const PORT = process.env.PORT || 8080;
+    app.listen(PORT, () => {
+        console.log(`Server is running locally on port ${PORT}`);
+    });
+}
+
+// 🟢 VERCEL KE LIYE (Serverless export)
+module.exports = app;

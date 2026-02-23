@@ -167,6 +167,8 @@ const Register = async (req, res) => {
 
         // 6. Send Email in a non-blocking way with Try-Catch
         try {
+            console.log("SMTP_USER:", process.env.SMTP_USER);
+console.log("SMTP_PASS length:", process.env.SMTP_PASS?.length);
             const mailOptions = {
                 from: process.env.SMTP_USER,
                 to: email,

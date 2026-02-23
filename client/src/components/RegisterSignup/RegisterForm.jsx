@@ -4,8 +4,7 @@ import { useState } from 'react'
 import axios from 'axios'
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
-const API_URL = import.meta.env.VITE_API_URL || "https://webchatapp-gee4a3a7d3g7aqbe.centralindia-01.azurewebsites.net";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 
 const RegisterForm = () => {
@@ -23,7 +22,7 @@ const RegisterForm = () => {
             password: password
         }
         try {
-            const response = await axios.post(`${API_URL}/api/chat/register`, data, {
+            const response = await axios.post(`${API_URL}/api/auth/register`, data, {
                 headers: {
                     'Content-Type': 'application/json'
                 }

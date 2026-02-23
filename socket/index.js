@@ -1,27 +1,38 @@
-// 🟢 Change 1: Load Environment Variables
+// 🟢 Load Environment Variables
 require('dotenv').config();
 
+const http = require("http");
 const { Server } = require("socket.io");
 
-// 🟢 Change 2: Use Dynamic Port & Origin
 const PORT = process.env.PORT || 7000;
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
 
-const io = new Server(PORT, {
+// 🟢 Change 1: Create an HTTP Server (Koyeb ke load balancer ke liye zaroori)
+const server = http.createServer((req, res) => {
+    // 🟢 Change 2: Health Check Route (Koyeb check karega ki app live hai ya nahi)
+    if (req.url === "/" || req.url === "/health") {
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end("Socket.io Server is running perfectly on Koyeb!");
+    }
+});
+
+// 🟢 Change 3: Attach Socket.io to the HTTP Server
+const io = new Server(server, {
     cors: {
         origin: CLIENT_URL,
-        methods: ["GET", "POST"]
-    }
+        methods: ["GET", "POST"],
+        credentials: true
+    },
+    transports: ["websocket", "polling"] // Cloud platform connection stability ke liye
 });
 
 let users = [];
 const roomMap = {}; // { roomId: [socketId, socketId] }
 
-// 🟢 Change 3: Fix addUser Logic (Update Socket ID on Refresh)
 const addUser = (userData, socketId) => {
     if (!userData || !userData._id) return;
     
-    // Pehle agar user exist karta hai to use hatao (taaki purana socket ID hat jaye)
+    // Pehle agar user exist karta hai to use hatao
     users = users.filter(user => user._id !== userData._id);
     
     // Ab naye socket ID ke saath add karo
@@ -36,8 +47,11 @@ const removeUser = (socketId) => {
     users = users.filter(user => user.socketId !== socketId);
 };
 
-console.log(`🚀 Socket Server started on Port ${PORT}`);
-console.log(`🌐 Allowing CORS for: ${CLIENT_URL}`);
+// 🟢 Change 4: Bind to "0.0.0.0" instead of localhost (Cloud deployment ke liye zaroori)
+server.listen(PORT, "0.0.0.0", () => {
+    console.log(`🚀 Socket Server started on Port ${PORT}`);
+    console.log(`🌐 Allowing CORS for: ${CLIENT_URL}`);
+});
 
 io.on('connection', (socket) => {
     console.log(`User connected: ${socket.id}`);
@@ -70,7 +84,7 @@ io.on('connection', (socket) => {
                 signal: data.signalData, 
                 from: data.from, 
                 name: data.name,
-                type: data.type // 🟢 Change 4: Pass 'type' (audio/video)
+                type: data.type 
             });
         }
     });
@@ -131,7 +145,6 @@ io.on('connection', (socket) => {
             if (roomMap[roomID].includes(socket.id)) {
                 roomMap[roomID] = roomMap[roomID].filter(id => id !== socket.id);
                 
-                // 🟢 Change 5: Notify others in room to remove video
                 socket.to(roomID).emit("user-disconnected", socket.id);
             }
             
