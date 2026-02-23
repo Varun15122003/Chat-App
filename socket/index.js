@@ -4,7 +4,7 @@ require('dotenv').config();
 const http = require("http");
 const { Server } = require("socket.io");
 
-const PORT = process.env.PORT || 7000;
+const PORT = process.env.PORT || 8080;
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
 
 // 🟢 Change 1: Create an HTTP Server (Koyeb ke load balancer ke liye zaroori)
